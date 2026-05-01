@@ -1,0 +1,34 @@
+# Claude context file
+CLAUDE.md
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment — never push secrets
+.env
+.env.local
+.env.production
+
+# Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Frontend (Week 7)
+node_modules/
+.next/
