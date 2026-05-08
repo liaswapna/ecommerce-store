@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from jose import jwt
+import jwt
 from bcrypt import hashpw, checkpw, gensalt
 from sqlalchemy.orm import Session
 from app.models.user import User

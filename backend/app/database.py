@@ -12,15 +12,15 @@ class Database:
 
     def __init__(self, url: str):
         self.engine = create_engine(url)
-        self.session = sessionmaker(
+        self.Session = sessionmaker(
             autocommit=False,
             autoflush=False,
             bind=self.engine
         )
 
     def get_session(self):
-        """Yields a database session per request ans ensures it is closed after use."""
-        db = self.session()
+        """Yields a database session per request and ensures it is closed after use."""
+        db = self.Session()
         try:
             yield db
         finally:
