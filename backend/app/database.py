@@ -14,7 +14,7 @@ class Database:
         self.engine = create_engine(url)
         self.Session = sessionmaker(
             autocommit=False,
-            autoflush=False,
+            autoflush=False,  # prevents SQLAlchemy from sending queries mid-transaction
             bind=self.engine
         )
 

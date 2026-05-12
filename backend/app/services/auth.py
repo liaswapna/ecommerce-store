@@ -27,6 +27,15 @@ class AuthService:
         payload = {"sub": str(user_id), "exp": expire}
         return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
+    def decode_token(self, token: str) -> int:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            return int(payload["sub"])  # JWT stores sub as string — cast back to int for DB lookup
+        except jwt.ExpiredSignatureError:
+            raise ValueError("Token has expired")
+        except jwt.InvalidTokenError:
+            raise ValueError("Invalid token")
+
     def register(self, db: Session, name: str, email: str, password: str) -> User:
         existing = repository.get_by_email(db, email)
         if existing:
@@ -36,6 +45,7 @@ class AuthService:
 
     def login(self, db: Session, email: str, password: str) -> str:
         user = repository.get_by_email(db, email)
+        # same error for both cases — never reveal which one failed
         if not user or not self.verify_password(password, user.hashed_password):
             raise ValueError("Invalid email or password")
         return self.create_token(user.id)

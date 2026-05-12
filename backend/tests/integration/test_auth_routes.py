@@ -76,3 +76,35 @@ class TestLogin:
         })
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid email or password"
+
+
+class TestMe:
+    def test_success(self, client):
+        client.post("/auth/register", json={
+            "name": "Sarah",
+            "email": "sarah@example.com",
+            "password": "secret123"
+        })
+        login_response = client.post("/auth/login", json={
+            "email": "sarah@example.com",
+            "password": "secret123"
+        })
+        token = login_response.json()["access_token"]
+        response = client.get("/auth/me", headers={
+            "Authorization": f"Bearer {token}"
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == "sarah@example.com"
+        assert data["name"] == "Sarah"
+        assert "password" not in data
+
+    def test_no_token(self, client):
+        response = client.get("/auth/me")
+        assert response.status_code == 401
+
+    def test_invalid_token(self, client):
+        response = client.get("/auth/me", headers={
+            "Authorization": "Bearer invalidtoken"
+        })
+        assert response.status_code == 401
