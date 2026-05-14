@@ -1,14 +1,17 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.database import Base, database
-from app.models import user
-from app.routes import auth
+from alembic.config import Config
+from alembic import command
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=database.engine)
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
     yield
+
+
+from app.routes import auth
 
 app = FastAPI(lifespan=lifespan)
 
