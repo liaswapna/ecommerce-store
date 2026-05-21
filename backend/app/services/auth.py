@@ -11,10 +11,10 @@ SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_MINUTES = 30
 
-repository = UserRepository()
-
-
 class AuthService:
+    def __init__(self):
+        self.repository = UserRepository()
+
     def hash_password(self, password: str) -> str:
         return hashpw(password.encode(), gensalt()).decode()
 
@@ -37,14 +37,14 @@ class AuthService:
             raise ValueError("Invalid token")
 
     def register(self, db: Session, name: str, email: str, password: str) -> User:
-        existing = repository.get_by_email(db, email)
+        existing = self.repository.get_by_email(db, email)
         if existing:
             raise ValueError("Email already registered")
         hashed = self.hash_password(password)
-        return repository.create(db, name, email, hashed)
+        return self.repository.create(db, name, email, hashed)
 
     def login(self, db: Session, email: str, password: str) -> str:
-        user = repository.get_by_email(db, email)
+        user = self.repository.get_by_email(db, email)
         # same error for both cases — never reveal which one failed
         if not user or not self.verify_password(password, user.hashed_password):
             raise ValueError("Invalid email or password")
