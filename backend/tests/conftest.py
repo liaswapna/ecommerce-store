@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from app.config import settings
 from app.main import app
 from app.database import Base, get_db
+from app.models import user, product  # noqa: F401 — required so Base.metadata knows about all tables
 
 
 engine = create_engine(settings.test_database_url)

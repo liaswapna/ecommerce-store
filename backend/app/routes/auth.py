@@ -6,7 +6,7 @@ from app.services.auth import AuthService
 from app.dependencies import get_current_user
 from app.models.user import User
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["Auth"])
 service = AuthService()
 
 
