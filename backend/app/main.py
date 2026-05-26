@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exception_handlers import http_exception_handler
 from alembic.config import Config
 from alembic import command
-from app.routes import auth, product
+from app.routes import auth, product, cart
 
 
 @asynccontextmanager
@@ -19,6 +19,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(product.router)
 app.include_router(product.admin_router)
+app.include_router(cart.router)
 
 
 # catches unhandled exceptions — HTTPException passed to default handler so 401/403/404 work normally

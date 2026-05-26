@@ -5,7 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from app.models import user, product
+# importing models registers them with Base.metadata — without this, autogenerate cannot detect the tables and will generate empty migrations
+from app.models import user, product, cart
 from app.database import Base
 from app.config import settings
 
