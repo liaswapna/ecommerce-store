@@ -7,6 +7,7 @@ class ProductRepository:
 
     # active_only=True → active products only (customers), False → all products including inactive (admin)
     def get_all(self, db: Session, page: int, page_size: int, active_only: bool = True) -> list[Product]:
+        # page 1 skips 0 rows, page 2 skips page_size rows, page 3 skips 2*page_size rows, and so on
         skip = (page - 1) * page_size
         if active_only:
             return db.query(Product).filter(Product.is_active == True).offset(skip).limit(page_size).all()
@@ -14,6 +15,7 @@ class ProductRepository:
 
     # active_only=True → active products only (customers), False → all products including inactive (admin)
     def get_by_category(self, db: Session, category: str, page: int, page_size: int, active_only: bool = True) -> list[Product]:
+        # page 1 skips 0 rows, page 2 skips page_size rows, page 3 skips 2*page_size rows, and so on
         skip = (page - 1) * page_size
         if active_only:
             return db.query(Product).filter(Product.category == category, Product.is_active == True).offset(skip).limit(page_size).all()
