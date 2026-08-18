@@ -1,8 +1,8 @@
 from decimal import Decimal
 from app.models.user import User
-from app.models.product import Product
 from tests.conftest import TestingSession
 from app.services.auth import AuthService
+from app.models.product import Product as ProductModel
 
 
 auth_service = AuthService()
@@ -59,7 +59,8 @@ class TestPlaceOrder:
         product = create_product(client, admin_token, stock=10)
         add_to_cart(client, user_token, product["id"], quantity=2)
 
-        response = client.post("/orders/", headers={"Authorization": f"Bearer {user_token}"})
+        response = client.post(
+            "/orders/", headers={"Authorization": f"Bearer {user_token}"})
 
         assert response.status_code == 200
         data = response.json()
@@ -76,9 +77,11 @@ class TestPlaceOrder:
         product = create_product(client, admin_token, stock=10)
         add_to_cart(client, user_token, product["id"], quantity=2)
 
-        client.post("/orders/", headers={"Authorization": f"Bearer {user_token}"})
+        client.post(
+            "/orders/", headers={"Authorization": f"Bearer {user_token}"})
 
-        cart = client.get("/cart/", headers={"Authorization": f"Bearer {user_token}"})
+        cart = client.get(
+            "/cart/", headers={"Authorization": f"Bearer {user_token}"})
         assert cart.json() == []
 
     def test_stock_decremented_after_order(self, client):
@@ -88,7 +91,8 @@ class TestPlaceOrder:
         product = create_product(client, admin_token, stock=10)
         add_to_cart(client, user_token, product["id"], quantity=3)
 
-        client.post("/orders/", headers={"Authorization": f"Bearer {user_token}"})
+        client.post(
+            "/orders/", headers={"Authorization": f"Bearer {user_token}"})
 
         updated = client.get(f"/products/{product['id']}")
         assert updated.json()["stock"] == 7
@@ -96,30 +100,27 @@ class TestPlaceOrder:
     def test_empty_cart_returns_404(self, client):
         # no items in cart — should return 404
         user_token = create_user_token()
-        response = client.post("/orders/", headers={"Authorization": f"Bearer {user_token}"})
+        response = client.post(
+            "/orders/", headers={"Authorization": f"Bearer {user_token}"})
         assert response.status_code == 404
 
     def test_out_of_stock_returns_400(self, client):
-        # product stock is 1, cart has quantity 5 — should return 400
+        # cart has quantity 5 but stock is only 1 — place order should return 400
         admin_token = create_admin_token()
         user_token = create_user_token()
         product = create_product(client, admin_token, stock=10)
         add_to_cart(client, user_token, product["id"], quantity=5)
 
-        # drain the stock via another order first
-        second_user = User(name="User2", email="user2@example.com",
-                           hashed_password=auth_service.hash_password("user123"), is_admin=False)
+        # drain stock so it's below cart quantity
         db = TestingSession()
-        db.add(second_user)
+
+        db.query(ProductModel).filter(ProductModel.id ==
+                                      product["id"]).update({"stock": 1})
         db.commit()
-        db.refresh(second_user)
-        second_token = auth_service.create_token(second_user.id)
         db.close()
 
-        add_to_cart(client, second_token, product["id"], quantity=10)
-        client.post("/orders/", headers={"Authorization": f"Bearer {second_token}"})
-
-        response = client.post("/orders/", headers={"Authorization": f"Bearer {user_token}"})
+        response = client.post(
+            "/orders/", headers={"Authorization": f"Bearer {user_token}"})
         assert response.status_code == 400
 
     def test_no_token_returns_401(self, client):
@@ -133,7 +134,8 @@ class TestGetOrders:
     def test_returns_empty_list_when_no_orders(self, client):
         # user has no orders — should return empty list
         user_token = create_user_token()
-        response = client.get("/orders/", headers={"Authorization": f"Bearer {user_token}"})
+        response = client.get(
+            "/orders/", headers={"Authorization": f"Bearer {user_token}"})
         assert response.status_code == 200
         assert response.json() == []
 
@@ -143,9 +145,11 @@ class TestGetOrders:
         user_token = create_user_token()
         product = create_product(client, admin_token, stock=10)
         add_to_cart(client, user_token, product["id"], quantity=2)
-        client.post("/orders/", headers={"Authorization": f"Bearer {user_token}"})
+        client.post(
+            "/orders/", headers={"Authorization": f"Bearer {user_token}"})
 
-        response = client.get("/orders/", headers={"Authorization": f"Bearer {user_token}"})
+        response = client.get(
+            "/orders/", headers={"Authorization": f"Bearer {user_token}"})
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -166,9 +170,11 @@ class TestGetOrderById:
         user_token = create_user_token()
         product = create_product(client, admin_token, stock=10)
         add_to_cart(client, user_token, product["id"], quantity=2)
-        order = client.post("/orders/", headers={"Authorization": f"Bearer {user_token}"}).json()
+        order = client.post(
+            "/orders/", headers={"Authorization": f"Bearer {user_token}"}).json()
 
-        response = client.get(f"/orders/{order['id']}", headers={"Authorization": f"Bearer {user_token}"})
+        response = client.get(
+            f"/orders/{order['id']}", headers={"Authorization": f"Bearer {user_token}"})
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == order["id"]
@@ -178,7 +184,8 @@ class TestGetOrderById:
     def test_order_not_found_returns_404(self, client):
         # order 999 doesn't exist — should return 404
         user_token = create_user_token()
-        response = client.get("/orders/999", headers={"Authorization": f"Bearer {user_token}"})
+        response = client.get(
+            "/orders/999", headers={"Authorization": f"Bearer {user_token}"})
         assert response.status_code == 404
 
     def test_no_token_returns_401(self, client):
