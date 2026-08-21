@@ -25,3 +25,4 @@ class CartItemDetailResponse(BaseModel):
     quantity: int
     name: str
     price: Decimal = Field(gt=0)
+    stock: int
