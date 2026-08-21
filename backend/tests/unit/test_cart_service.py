@@ -29,7 +29,7 @@ def make_cart_item(**kwargs):
 
 def make_cart_detail(**kwargs):
     defaults = dict(user_id=1, product_id=1, quantity=2,
-                    name="Nike Air Max", price=Decimal("99.99"))
+                    name="Nike Air Max", price=Decimal("99.99"), stock=50)
     defaults.update(kwargs)
     return CartItemDetailResponse(**defaults)
 

@@ -14,7 +14,8 @@ class CartRepository:
                 product_id=cart_item.product_id,
                 quantity=cart_item.quantity,
                 name=product.name,
-                price=product.price
+                price=product.price,
+                stock=product.stock
             )
             for cart_item, product in cart_details
         ]
