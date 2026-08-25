@@ -11,7 +11,7 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [adding, setAdding] = useState<number | null>(null)
-    const [quantities, setQuantities] = useState<Record<number, number>>({})
+    const [quantities] = useState<Record<number, number>>({})
     const [cartProductIds, setCartProductIds] = useState<Set<number>>(new Set())
     const [cartQuantities, setCartQuantities] = useState<Record<number, number>>({})
 
@@ -33,13 +33,6 @@ export default function ProductsPage() {
 
     function getQty(product_id: number) {
         return quantities[product_id] ?? 1
-    }
-
-    function changeQty(product_id: number, delta: number, stock: number) {
-        setQuantities((prev) => ({
-            ...prev,
-            [product_id]: Math.min(stock, Math.max(1, (prev[product_id] ?? 1) + delta))
-        }))
     }
 
     async function handleAddToCart(product_id: number) {
