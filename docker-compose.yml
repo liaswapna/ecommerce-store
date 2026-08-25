@@ -19,7 +19,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/ecommerce_store
-      SECRET_KEY: changeme
+      SECRET_KEY: ${SECRET_KEY}
     depends_on:
       db:
         condition: service_healthy
