@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
@@ -10,8 +11,9 @@ from app.routes import auth, product, cart, order
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
+    if not os.getenv("TESTING"):
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
     yield
 
 
