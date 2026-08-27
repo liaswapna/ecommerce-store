@@ -33,6 +33,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Create dev database
+        run: psql -h localhost -U postgres -c "CREATE DATABASE ecommerce_store;"
+        env:
+          PGPASSWORD: postgres
+
       - name: Install dependencies
         working-directory: backend
         run: pip install -r requirements.txt
