@@ -220,7 +220,7 @@ GitHub Actions runs on every push and pull request to `main`:
 2. **deploy-backend** — triggers a Render redeploy (only if tests pass, only on push to main) (TODO)
 3. **deploy-frontend** — deploys to Vercel (only if tests pass, only on push to main) (TODO)
 
-Pull requests run tests but never deploy.
+Pull requests run tests but never deploy. Branch protection on `main` blocks merging until the `test` job passes.
 
 All secrets (database URLs, API keys) are stored in GitHub Secrets — never in code.
 
