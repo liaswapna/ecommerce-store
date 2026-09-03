@@ -2,8 +2,6 @@
 
 A full-stack e-commerce platform built with FastAPI and React. Customers can browse products, manage a cart, and place orders. Admins can manage products and view orders.
 
-> **Demo notice:** This is a portfolio project. Do not use real personal information.
-
 ---
 
 ## Live Demo
@@ -27,9 +25,9 @@ A full-stack e-commerce platform built with FastAPI and React. Customers can bro
 
 **Infrastructure**
 - Docker + Docker Compose (local)
-- Neon (PostgreSQL, production)
-- Render (backend, production)
-- Vercel (frontend, production)
+- Neon (PostgreSQL, production) (TODO)
+- Render (backend, production) (TODO)
+- Vercel (frontend, production) (TODO)
 - GitHub Actions (CI/CD)
 
 ---
@@ -219,8 +217,8 @@ pytest tests/integration/
 GitHub Actions runs on every push and pull request to `main`:
 
 1. **Test job** — spins up a Postgres container, installs dependencies, runs the full test suite
-2. **deploy-backend** — triggers a Render redeploy (only if tests pass, only on push to main)
-3. **deploy-frontend** — deploys to Vercel (only if tests pass, only on push to main)
+2. **deploy-backend** — triggers a Render redeploy (only if tests pass, only on push to main) (TODO)
+3. **deploy-frontend** — deploys to Vercel (only if tests pass, only on push to main) (TODO)
 
 Pull requests run tests but never deploy.
 
