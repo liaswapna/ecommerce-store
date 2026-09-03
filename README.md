@@ -1,6 +1,6 @@
 # E-Commerce Store
 
-A full-stack e-commerce platform built with FastAPI and React. Customers can browse products, manage a cart, and place orders. Admins can manage products and view orders.
+A full-stack e-commerce platform built with FastAPI and React. Customers can browse products, add items to a cart, and place orders. Admins can manage products and view orders.
 
 ---
 
