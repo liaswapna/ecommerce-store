@@ -11,7 +11,10 @@ class Database:
     """Manages database connection and session lifecycle."""
 
     def __init__(self, url: str):
-        self.engine = create_engine(url)
+        # pool_pre_ping: checks a saved connection is still alive (SELECT 1) before using it.
+        # Neon free tier pauses the DB after 5 min idle, which kills saved connections -
+        # without this, the first request after a pause would fail with a 500 error.
+        self.engine = create_engine(url, pool_pre_ping=True)
         self.Session = sessionmaker(
             autocommit=False,
             autoflush=False,  # prevents SQLAlchemy from sending queries mid-transaction
