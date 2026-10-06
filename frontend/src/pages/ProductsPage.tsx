@@ -3,8 +3,36 @@ import { useNavigate } from "react-router-dom"
 import { getProducts, addToCart, getCart, removeFromCart, updateCartQuantity } from "../api"
 import type { Product } from "../api"
 import { useAuth } from "../context/AuthContext"
+import { CATEGORIES } from "../constants"
 
 const PAGE_SIZE = 9
+
+const TILE_STYLES: Record<string, string> = {
+    shoes: "from-sky-100 to-sky-50 text-sky-800",
+    electronics: "from-emerald-100 to-emerald-50 text-emerald-800",
+    clothing: "from-violet-100 to-violet-50 text-violet-800",
+    sports: "from-amber-100 to-amber-50 text-amber-800",
+}
+
+function ProductImage({ product }: { product: Product }) {
+    const [failed, setFailed] = useState(false)
+    if (!product.image_url || failed) {
+        const style = TILE_STYLES[product.category] ?? "from-slate-100 to-slate-50 text-brand"
+        return (
+            <div className={`h-48 w-full bg-linear-to-br ${style} flex items-center justify-center text-5xl font-extrabold`}>
+                {product.name.charAt(0).toUpperCase()}
+            </div>
+        )
+    }
+    return (
+        <img
+            src={product.image_url}
+            alt={product.name}
+            onError={() => setFailed(true)}
+            className="h-48 w-full object-cover"
+        />
+    )
+}
 
 export default function ProductsPage() {
     const { token, user } = useAuth()
@@ -18,16 +46,17 @@ export default function ProductsPage() {
     const [cartProductIds, setCartProductIds] = useState<Set<number>>(new Set())
     const [cartQuantities, setCartQuantities] = useState<Record<number, number>>({})
     const [page, setPage] = useState(1)
+    const [category, setCategory] = useState("")
 
     useEffect(() => {
-        getProducts(page, PAGE_SIZE)
+        getProducts(page, PAGE_SIZE, category)
             .then((data) => {
                 setProducts(data)
                 setError(null)
             })
             .catch((e) => setError(e.message))
             .finally(() => setLoading(false))
-    }, [page])
+    }, [page, category])
 
     useEffect(() => {
         if (!token || !user || user.is_admin) return
@@ -42,6 +71,13 @@ export default function ProductsPage() {
     function goToPage(newPage: number) {
         setLoading(true)
         setPage(newPage)
+    }
+
+    function selectCategory(newCategory: string) {
+        if (newCategory === category) return
+        setLoading(true)
+        setCategory(newCategory)
+        setPage(1)
     }
 
     function getQty(product_id: number) {
@@ -85,74 +121,104 @@ export default function ProductsPage() {
         }
     }
 
-    if (loading) return <p className="p-8 text-gray-500">Loading products...</p>
-    if (error) return <p className="p-8 text-red-500">{error}</p>
-
     return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold mb-6">Products</h1>
-            {products.length === 0 && (
-                <p className="text-gray-500">{page > 1 ? "No more products." : "No products found."}</p>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product) => (
-                    <div key={product.id} className="border rounded-lg p-4 shadow-sm bg-white flex flex-col">
-                        {product.image_url && (
-                            <img
-                                src={product.image_url}
-                                alt={product.name}
-                                className="w-full h-48 object-cover rounded mb-3"
-                            />
-                        )}
-                        <p className="text-xs text-gray-400 uppercase mb-1">{product.category}</p>
-                        <h2 className="text-lg font-semibold">{product.name}</h2>
-                        <p className="text-gray-500 text-sm mt-1 mb-3 flex-1">{product.description}</p>
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-xl font-bold">${product.price}</span>
-                            <span className="text-sm text-gray-400">{product.stock} in stock</span>
-                        </div>
-
-                        {isAdmin ? null : cartProductIds.has(product.id) ? (
-                            <div className="flex items-center justify-between border rounded-lg px-3 py-2">
-                                <button
-                                    onClick={() => handleRemoveFromCart(product.id)}
-                                    disabled={adding === product.id}
-                                    className="w-8 h-8 rounded-full border text-lg font-bold hover:bg-gray-100 disabled:opacity-50"
-                                >−</button>
-                                <span className="font-semibold">{cartQuantities[product.id]}</span>
-                                <button
-                                    onClick={() => handleAddToCart(product.id)}
-                                    disabled={adding === product.id || cartQuantities[product.id] >= product.stock}
-                                    className="w-8 h-8 rounded-full border text-lg font-bold hover:bg-gray-100 disabled:opacity-50"
-                                >+</button>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => handleAddToCart(product.id)}
-                                disabled={adding === product.id || product.stock === 0}
-                                className="w-full bg-black text-white py-2 rounded hover:bg-gray-800 disabled:opacity-50"
-                            >
-                                {adding === product.id ? "Adding..." : product.stock === 0 ? "Out of Stock" : "Add to Cart"}
-                            </button>
-                        )}
-                    </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
+            <h1 className="text-3xl font-extrabold tracking-tight text-brand-dark">Products</h1>
+            <p className="text-gray-500 mt-1 mb-6">Browse our collection</p>
+            <div className="flex flex-wrap gap-2 mb-8">
+                {["", ...CATEGORIES].map((c) => (
+                    <button
+                        key={c || "all"}
+                        onClick={() => selectCategory(c)}
+                        className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize border transition-colors ${
+                            category === c
+                                ? "bg-brand text-white border-brand"
+                                : "bg-white text-brand border-slate-300 hover:border-accent hover:bg-accent-soft"
+                        }`}
+                    >
+                        {c || "All"}
+                    </button>
                 ))}
             </div>
-            <div className="flex justify-between items-center mt-8">
+            {loading ? (
+                <p className="text-gray-500">Loading products...</p>
+            ) : error ? (
+                <p className="text-red-600">{error}</p>
+            ) : (
+                <>
+                    {products.length === 0 && (
+                        <p className="text-gray-500">{page > 1 ? "No more products." : "No products found."}</p>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {products.map((product) => (
+                            <div
+                                key={product.id}
+                                className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
+                            >
+                                <ProductImage product={product} />
+                                <div className="p-5 flex flex-col flex-1">
+                                    <span className="self-start text-xs font-bold uppercase tracking-wide text-brand bg-accent-soft px-2.5 py-1 rounded-full">
+                                        {product.category}
+                                    </span>
+                                    <h2 className="text-lg font-bold mt-3">{product.name}</h2>
+                                    <p className="text-gray-500 text-sm mt-1 mb-4 flex-1">{product.description}</p>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-xl font-extrabold text-brand-dark">${product.price}</span>
+                                        {product.stock > 0 ? (
+                                            <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+                                                {product.stock} in stock
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                                                Out of stock
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {isAdmin ? null : cartProductIds.has(product.id) ? (
+                                        <div className="flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2">
+                                            <button
+                                                onClick={() => handleRemoveFromCart(product.id)}
+                                                disabled={adding === product.id}
+                                                className="w-8 h-8 rounded-full border border-brand text-brand text-lg font-bold hover:bg-accent-soft disabled:opacity-50"
+                                            >−</button>
+                                            <span className="font-semibold">{cartQuantities[product.id]}</span>
+                                            <button
+                                                onClick={() => handleAddToCart(product.id)}
+                                                disabled={adding === product.id || cartQuantities[product.id] >= product.stock}
+                                                className="w-8 h-8 rounded-full border border-brand text-brand text-lg font-bold hover:bg-accent-soft disabled:opacity-50"
+                                            >+</button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleAddToCart(product.id)}
+                                            disabled={adding === product.id || product.stock === 0}
+                                            className="w-full bg-brand text-white py-2.5 rounded-xl font-semibold hover:bg-brand-dark transition-colors disabled:opacity-50"
+                                        >
+                                            {adding === product.id ? "Adding..." : product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+            <div className="flex justify-center items-center gap-4 mt-10">
                 <button
                     onClick={() => goToPage(page - 1)}
                     disabled={page === 1}
-                    className="border px-4 py-2 rounded hover:bg-gray-100 disabled:opacity-50"
+                    className="bg-white border border-slate-300 text-brand font-semibold px-4 py-2 rounded-xl hover:bg-accent-soft disabled:opacity-40 disabled:hover:bg-white"
                 >
-                    Previous
+                    ← Previous
                 </button>
-                <span className="text-sm text-gray-600">Page {page}</span>
+                <span className="text-sm text-gray-500">Page {page}</span>
                 <button
                     onClick={() => goToPage(page + 1)}
                     disabled={products.length < PAGE_SIZE}
-                    className="border px-4 py-2 rounded hover:bg-gray-100 disabled:opacity-50"
+                    className="bg-white border border-slate-300 text-brand font-semibold px-4 py-2 rounded-xl hover:bg-accent-soft disabled:opacity-40 disabled:hover:bg-white"
                 >
-                    Next
+                    Next →
                 </button>
             </div>
         </div>

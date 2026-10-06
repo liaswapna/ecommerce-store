@@ -92,99 +92,115 @@ export default function AdminProductFormPage() {
         }
     }
 
-    if (loading) return <p className="p-8 text-gray-500">Loading product...</p>
+    const container = "max-w-xl mx-auto px-4 sm:px-8 py-8"
+    const inputClass = "w-full border border-slate-300 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+    const labelClass = "block text-sm font-medium text-gray-700 mb-1"
+
+    if (loading) return <p className={`${container} text-gray-500`}>Loading product...</p>
 
     const categoryOptions = CATEGORIES.includes(form.category) ? CATEGORIES : [...CATEGORIES, form.category]
 
     return (
-        <div className="p-8 max-w-xl">
-            <h1 className="text-3xl font-bold mb-6">{isEdit ? "Edit product" : "New product"}</h1>
-            {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block text-sm text-gray-600 mb-1">Name</label>
-                    <input
-                        className="w-full border rounded px-3 py-2"
-                        value={form.name}
-                        onChange={(e) => updateField("name", e.target.value)}
-                        required
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm text-gray-600 mb-1">Description</label>
-                    <textarea
-                        className="w-full border rounded px-3 py-2"
-                        rows={3}
-                        value={form.description}
-                        onChange={(e) => updateField("description", e.target.value)}
-                        required
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm text-gray-600 mb-1">Image URL (optional)</label>
-                    <input
-                        className="w-full border rounded px-3 py-2"
-                        value={form.image_url}
-                        onChange={(e) => updateField("image_url", e.target.value)}
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm text-gray-600 mb-1">Category</label>
-                    <select
-                        className="w-full border rounded px-3 py-2"
-                        value={form.category}
-                        onChange={(e) => updateField("category", e.target.value)}
-                    >
-                        {categoryOptions.map((c) => (
-                            <option key={c} value={c}>{c}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="flex gap-4">
-                    <div className="flex-1">
-                        <label className="block text-sm text-gray-600 mb-1">Price ($)</label>
+        <div className={container}>
+            <Link to="/admin" className="text-sm font-semibold text-brand hover:underline">← Back to products</Link>
+            <h1 className="text-3xl font-extrabold tracking-tight text-brand-dark mt-4 mb-6">{isEdit ? "Edit product" : "New product"}</h1>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+                {error && <p className="bg-red-50 text-red-700 text-sm rounded-xl px-3 py-2 mb-4">{error}</p>}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className={labelClass}>Name</label>
                         <input
-                            className="w-full border rounded px-3 py-2"
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            value={form.price}
-                            onChange={(e) => updateField("price", e.target.value)}
+                            className={inputClass}
+                            value={form.name}
+                            onChange={(e) => updateField("name", e.target.value)}
                             required
                         />
                     </div>
-                    <div className="flex-1">
-                        <label className="block text-sm text-gray-600 mb-1">Stock</label>
-                        <input
-                            className="w-full border rounded px-3 py-2"
-                            type="number"
-                            step="1"
-                            min="0"
-                            value={form.stock}
-                            onChange={(e) => updateField("stock", e.target.value)}
+                    <div>
+                        <label className={labelClass}>Description</label>
+                        <textarea
+                            className={inputClass}
+                            rows={3}
+                            value={form.description}
+                            onChange={(e) => updateField("description", e.target.value)}
                             required
                         />
                     </div>
-                </div>
-                <label className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        checked={form.is_active}
-                        onChange={(e) => updateField("is_active", e.target.checked)}
-                    />
-                    <span>Active (visible to customers)</span>
-                </label>
-                <div className="flex gap-3 pt-2">
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
-                    >
-                        {saving ? "Saving..." : isEdit ? "Save changes" : "Create product"}
-                    </button>
-                    <Link to="/admin" className="border px-4 py-2 rounded hover:bg-gray-100">Cancel</Link>
-                </div>
-            </form>
+                    <div>
+                        <label className={labelClass}>Image URL (optional)</label>
+                        <input
+                            className={inputClass}
+                            value={form.image_url}
+                            onChange={(e) => updateField("image_url", e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className={labelClass}>Category</label>
+                        <select
+                            className={`${inputClass} capitalize`}
+                            value={form.category}
+                            onChange={(e) => updateField("category", e.target.value)}
+                        >
+                            {categoryOptions.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className={labelClass}>Price ($)</label>
+                            <input
+                                className={inputClass}
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={form.price}
+                                onChange={(e) => updateField("price", e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className={labelClass}>Stock</label>
+                            <input
+                                className={inputClass}
+                                type="number"
+                                step="1"
+                                min="0"
+                                value={form.stock}
+                                onChange={(e) => updateField("stock", e.target.value)}
+                                required
+                            />
+                        </div>
+                    </div>
+                    <label className="flex items-start gap-3 pt-1">
+                        <input
+                            type="checkbox"
+                            className="mt-1 w-4 h-4 accent-brand"
+                            checked={form.is_active}
+                            onChange={(e) => updateField("is_active", e.target.checked)}
+                        />
+                        <span>
+                            <span className="block font-medium text-gray-700">Active</span>
+                            <span className="block text-sm text-gray-500">Visible to customers</span>
+                        </span>
+                    </label>
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="bg-brand text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-brand-dark transition-colors disabled:opacity-50"
+                        >
+                            {saving ? "Saving..." : isEdit ? "Save changes" : "Create product"}
+                        </button>
+                        <Link
+                            to="/admin"
+                            className="bg-white border border-brand text-brand px-5 py-2.5 rounded-xl font-semibold hover:bg-accent-soft transition-colors"
+                        >
+                            Cancel
+                        </Link>
+                    </div>
+                </form>
+            </div>
         </div>
     )
 }

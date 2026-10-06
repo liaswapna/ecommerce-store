@@ -37,21 +37,29 @@ export default function AdminProductsPage() {
         setPage(newPage)
     }
 
+    const pageButton = "bg-white border border-slate-300 text-brand font-semibold px-4 py-2 rounded-xl hover:bg-accent-soft disabled:opacity-40 disabled:hover:bg-white"
+
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold">Manage Products</h1>
-                <Link to="/admin/products/new" className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-brand-dark">Manage Products</h1>
+                    <p className="text-gray-500 mt-1">Create, edit and filter products</p>
+                </div>
+                <Link
+                    to="/admin/products/new"
+                    className="bg-brand text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-brand-dark transition-colors"
+                >
                     + New product
                 </Link>
             </div>
 
-            <div className="mb-4">
-                <label className="mr-2 text-sm text-gray-600">Category:</label>
+            <div className="mb-4 flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-600">Category:</label>
                 <select
                     value={category}
                     onChange={(e) => changeCategory(e.target.value)}
-                    className="border rounded px-3 py-2"
+                    className="border border-slate-300 rounded-xl px-3 py-2 bg-white capitalize focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
                 >
                     <option value="">All</option>
                     {CATEGORIES.map((c) => (
@@ -60,16 +68,16 @@ export default function AdminProductsPage() {
                 </select>
             </div>
 
-            {error && <p className="text-red-500 mb-4">{error}</p>}
+            {error && <p className="bg-red-50 text-red-700 text-sm rounded-xl px-3 py-2 mb-4">{error}</p>}
 
             {loading ? (
                 <p className="text-gray-500">Loading products...</p>
             ) : products.length === 0 ? (
                 <p className="text-gray-500">{page > 1 ? "No more products." : "No products found."}</p>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full bg-white border rounded-lg">
-                        <thead className="bg-gray-50 text-left text-sm text-gray-600">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
                             <tr>
                                 <th className="p-3">Name</th>
                                 <th className="p-3">Category</th>
@@ -81,20 +89,24 @@ export default function AdminProductsPage() {
                         </thead>
                         <tbody>
                             {products.map((product) => (
-                                <tr key={product.id} className="border-t">
+                                <tr key={product.id} className="border-t border-slate-200 hover:bg-slate-50 transition-colors">
                                     <td className="p-3 font-medium">{product.name}</td>
-                                    <td className="p-3">{product.category}</td>
-                                    <td className="p-3">${product.price}</td>
+                                    <td className="p-3">
+                                        <span className="text-xs font-bold uppercase tracking-wide text-brand bg-accent-soft px-2.5 py-1 rounded-full">
+                                            {product.category}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 font-semibold text-brand-dark">${product.price}</td>
                                     <td className="p-3">{product.stock}</td>
                                     <td className="p-3">
                                         {product.is_active ? (
-                                            <span className="text-green-700 bg-green-100 px-2 py-1 rounded text-xs">Active</span>
+                                            <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">Active</span>
                                         ) : (
-                                            <span className="text-gray-600 bg-gray-200 px-2 py-1 rounded text-xs">Inactive</span>
+                                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">Inactive</span>
                                         )}
                                     </td>
                                     <td className="p-3 text-right">
-                                        <Link to={`/admin/products/${product.id}/edit`} className="underline hover:text-gray-600">
+                                        <Link to={`/admin/products/${product.id}/edit`} className="text-brand font-semibold hover:underline">
                                             Edit
                                         </Link>
                                     </td>
@@ -105,21 +117,21 @@ export default function AdminProductsPage() {
                 </div>
             )}
 
-            <div className="flex justify-between items-center mt-6">
+            <div className="flex justify-center items-center gap-4 mt-10">
                 <button
                     onClick={() => goToPage(page - 1)}
                     disabled={page === 1 || loading}
-                    className="border px-4 py-2 rounded hover:bg-gray-100 disabled:opacity-50"
+                    className={pageButton}
                 >
-                    Previous
+                    ← Previous
                 </button>
-                <span className="text-sm text-gray-600">Page {page}</span>
+                <span className="text-sm text-gray-500">Page {page}</span>
                 <button
                     onClick={() => goToPage(page + 1)}
                     disabled={products.length < PAGE_SIZE || loading}
-                    className="border px-4 py-2 rounded hover:bg-gray-100 disabled:opacity-50"
+                    className={pageButton}
                 >
-                    Next
+                    Next →
                 </button>
             </div>
         </div>

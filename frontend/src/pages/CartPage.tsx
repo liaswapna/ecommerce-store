@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { getCart, removeFromCart, updateCartQuantity, placeOrder } from "../api"
 import type { CartItem } from "../api"
 import { useAuth } from "../context/AuthContext"
@@ -76,21 +76,34 @@ export default function CartPage() {
 
     const total = items.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0)
 
-    if (loading) return <p className="p-8 text-gray-500">Loading cart...</p>
-    if (error) return <p className="p-8 text-red-500">{error}</p>
+    const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
+    const container = "max-w-2xl mx-auto px-4 sm:px-8 py-8"
+    const qtyButton = "w-8 h-8 rounded-full border border-brand text-brand text-lg font-bold hover:bg-accent-soft disabled:opacity-50"
+
+    if (loading) return <p className={`${container} text-gray-500`}>Loading cart...</p>
+    if (error) return <p className={`${container} text-red-600`}>{error}</p>
     if (items.length === 0) return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold mb-4">Your Cart</h1>
-            <p className="text-gray-500">Your cart is empty.</p>
+        <div className={container}>
+            <h1 className="text-3xl font-extrabold tracking-tight text-brand-dark mb-6">Your Cart</h1>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+                <p className="text-gray-500 mb-4">Your cart is empty.</p>
+                <Link
+                    to="/"
+                    className="inline-block bg-brand text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-brand-dark transition-colors"
+                >
+                    Browse products
+                </Link>
+            </div>
         </div>
     )
 
     return (
-        <div className="p-8 max-w-2xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Your Cart</h1>
+        <div className={container}>
+            <h1 className="text-3xl font-extrabold tracking-tight text-brand-dark">Your Cart</h1>
+            <p className="text-gray-500 mt-1 mb-6">{itemCount} item{itemCount === 1 ? "" : "s"}</p>
             <div className="space-y-4">
                 {items.map((item) => (
-                    <div key={item.product_id} className="flex justify-between items-center border rounded-lg p-4">
+                    <div key={item.product_id} className="flex justify-between items-center bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
                         <div className="flex-1">
                             <p className="font-semibold">{item.name}</p>
                             <p className="text-sm text-gray-500">${item.price} each</p>
@@ -99,20 +112,20 @@ export default function CartPage() {
                             <button
                                 onClick={() => handleDecrement(item)}
                                 disabled={updating === item.product_id}
-                                className="w-8 h-8 rounded-full border text-lg font-bold hover:bg-gray-100 disabled:opacity-50"
+                                className={qtyButton}
                             >−</button>
                             <span className="w-6 text-center font-semibold">{item.quantity}</span>
                             <button
                                 onClick={() => handleIncrement(item)}
                                 disabled={updating === item.product_id || item.quantity >= item.stock}
-                                className="w-8 h-8 rounded-full border text-lg font-bold hover:bg-gray-100 disabled:opacity-50"
+                                className={qtyButton}
                             >+</button>
                         </div>
                         <div className="flex items-center gap-4 ml-4">
-                            <p className="font-bold w-20 text-right">${(parseFloat(item.price) * item.quantity).toFixed(2)}</p>
+                            <p className="font-bold text-brand-dark w-20 text-right">${(parseFloat(item.price) * item.quantity).toFixed(2)}</p>
                             <button
                                 onClick={() => handleRemove(item.product_id)}
-                                className="text-red-500 text-sm hover:underline"
+                                className="text-gray-400 text-sm hover:text-red-600 transition-colors"
                             >
                                 Remove
                             </button>
@@ -120,12 +133,15 @@ export default function CartPage() {
                     </div>
                 ))}
             </div>
-            <div className="mt-6 flex justify-between items-center">
-                <p className="text-xl font-bold">Total: ${total.toFixed(2)}</p>
+            <div className="mt-6 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex justify-between items-center">
+                <div>
+                    <p className="text-sm text-gray-500">Total</p>
+                    <p className="text-2xl font-extrabold text-brand-dark">${total.toFixed(2)}</p>
+                </div>
                 <button
                     onClick={handlePlaceOrder}
                     disabled={placing}
-                    className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
+                    className="bg-brand text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-brand-dark transition-colors disabled:opacity-50"
                 >
                     {placing ? "Placing order..." : "Place Order"}
                 </button>

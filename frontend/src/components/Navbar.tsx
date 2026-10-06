@@ -1,5 +1,13 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link, NavLink, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+    `pb-1 border-b-2 transition-colors ${
+        isActive ? "text-white border-accent" : "text-white/75 border-transparent hover:text-white"
+    }`
+
+const buttonClass =
+    "border border-accent rounded-full px-4 py-1.5 text-white hover:bg-accent hover:text-brand-dark transition-colors"
 
 export default function Navbar() {
     const { token, user, logout } = useAuth()
@@ -11,25 +19,27 @@ export default function Navbar() {
     }
 
     return (
-        <nav className="bg-black text-white px-8 py-4 flex justify-between items-center">
-            <Link to="/" className="text-xl font-bold">MyStore</Link>
-            <div className="flex gap-6 items-center">
-                <Link to="/" className="hover:text-gray-300">Products</Link>
+        <nav className="bg-brand text-white px-4 sm:px-8 py-4 flex justify-between items-center shadow-sm">
+            <Link to="/" className="text-xl font-extrabold tracking-tight">
+                My<span className="text-accent">Store</span>
+            </Link>
+            <div className="flex gap-4 sm:gap-6 items-center">
+                <NavLink to="/" end className={linkClass}>Products</NavLink>
                 {token ? (
                     <>
                         {user?.is_admin && (
-                            <Link to="/admin" className="hover:text-gray-300">Admin</Link>
+                            <NavLink to="/admin" className={linkClass}>Admin</NavLink>
                         )}
                         {user && !user.is_admin && (
                             <>
-                                <Link to="/cart" className="hover:text-gray-300">Cart</Link>
-                                <Link to="/orders" className="hover:text-gray-300">Orders</Link>
+                                <NavLink to="/cart" className={linkClass}>Cart</NavLink>
+                                <NavLink to="/orders" className={linkClass}>Orders</NavLink>
                             </>
                         )}
-                        <button onClick={handleLogout} className="hover:text-gray-300">Logout</button>
+                        <button onClick={handleLogout} className={buttonClass}>Logout</button>
                     </>
                 ) : (
-                    <Link to="/login" className="hover:text-gray-300">Login</Link>
+                    <Link to="/login" className={buttonClass}>Login</Link>
                 )}
             </div>
         </nav>

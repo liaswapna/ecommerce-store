@@ -17,7 +17,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
-        <Suspense fallback={<p className="p-8 text-gray-500">Loading...</p>}>
+        <Suspense fallback={<p className="max-w-6xl mx-auto px-4 sm:px-8 py-8 text-gray-500">Loading...</p>}>
           <Routes>
             <Route path="/" element={<ProductsPage />} />
             <Route path="/login" element={<LoginPage />} />
