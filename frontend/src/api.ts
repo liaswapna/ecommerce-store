@@ -4,7 +4,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const response = await fetch(`${BASE_URL}${path}`, options)
     if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.detail || "Something went wrong")
+        const detail = Array.isArray(error.detail)
+            ? error.detail.map((d: { msg: string }) => d.msg).join(", ")
+            : error.detail
+        throw new Error(detail || "Something went wrong")
     }
     return response.json()
 }
@@ -21,6 +24,24 @@ export interface Product {
     category: string
     price: string
     stock: number
+    is_active: boolean
+}
+
+export interface User {
+    id: number
+    name: string
+    email: string
+    is_admin: boolean
+}
+
+export interface ProductInput {
+    name: string
+    description: string
+    image_url: string | null
+    category: string
+    price: number
+    stock: number
+    is_active: boolean
 }
 
 export interface CartItem {
@@ -46,8 +67,8 @@ export interface Order {
     items?: OrderItem[]
 }
 
-export function getProducts(skip = 0, limit = 20): Promise<Product[]> {
-    return request<Product[]>(`/products/?skip=${skip}&limit=${limit}`)
+export function getProducts(page = 1, pageSize = 9): Promise<Product[]> {
+    return request<Product[]>(`/products/?page=${page}&page_size=${pageSize}`)
 }
 
 export function login(email: string, password: string): Promise<{ access_token: string }> {
@@ -100,4 +121,27 @@ export function getOrders(token: string): Promise<Order[]> {
 
 export function getOrderById(token: string, id: number): Promise<Order> {
     return request(`/orders/${id}`, { headers: authHeaders(token) })
+}
+
+export function getMe(token: string): Promise<User> {
+    return request("/auth/me", { headers: authHeaders(token) })
+}
+
+export function adminGetProducts(token: string, page = 1, pageSize = 10, category = ""): Promise<Product[]> {
+    const path = category
+        ? `/admin/products/category/${encodeURIComponent(category)}`
+        : "/admin/products/"
+    return request(`${path}?page=${page}&page_size=${pageSize}`, { headers: authHeaders(token) })
+}
+
+export function adminGetProduct(token: string, id: number): Promise<Product> {
+    return request(`/admin/products/${id}`, { headers: authHeaders(token) })
+}
+
+export function createProduct(token: string, data: ProductInput): Promise<Product> {
+    return request("/admin/products/", { method: "POST", headers: authHeaders(token), body: JSON.stringify(data) })
+}
+
+export function updateProduct(token: string, id: number, data: Partial<ProductInput>): Promise<Product> {
+    return request(`/admin/products/${id}`, { method: "PUT", headers: authHeaders(token), body: JSON.stringify(data) })
 }

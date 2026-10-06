@@ -4,8 +4,11 @@ import { getProducts, addToCart, getCart, removeFromCart, updateCartQuantity } f
 import type { Product } from "../api"
 import { useAuth } from "../context/AuthContext"
 
+const PAGE_SIZE = 9
+
 export default function ProductsPage() {
-    const { token } = useAuth()
+    const { token, user } = useAuth()
+    const isAdmin = user?.is_admin === true
     const navigate = useNavigate()
     const [products, setProducts] = useState<Product[]>([])
     const [loading, setLoading] = useState(true)
@@ -14,22 +17,32 @@ export default function ProductsPage() {
     const [quantities] = useState<Record<number, number>>({})
     const [cartProductIds, setCartProductIds] = useState<Set<number>>(new Set())
     const [cartQuantities, setCartQuantities] = useState<Record<number, number>>({})
+    const [page, setPage] = useState(1)
 
     useEffect(() => {
-        getProducts()
-            .then(setProducts)
+        getProducts(page, PAGE_SIZE)
+            .then((data) => {
+                setProducts(data)
+                setError(null)
+            })
             .catch((e) => setError(e.message))
             .finally(() => setLoading(false))
+    }, [page])
 
-        if (token) {
-            getCart(token).then((items) => {
-                setCartProductIds(new Set(items.map((i) => i.product_id)))
-                const qtyMap: Record<number, number> = {}
-                items.forEach((i) => { qtyMap[i.product_id] = i.quantity })
-                setCartQuantities(qtyMap)
-            })
-        }
-    }, [token])
+    useEffect(() => {
+        if (!token || !user || user.is_admin) return
+        getCart(token).then((items) => {
+            setCartProductIds(new Set(items.map((i) => i.product_id)))
+            const qtyMap: Record<number, number> = {}
+            items.forEach((i) => { qtyMap[i.product_id] = i.quantity })
+            setCartQuantities(qtyMap)
+        })
+    }, [token, user])
+
+    function goToPage(newPage: number) {
+        setLoading(true)
+        setPage(newPage)
+    }
 
     function getQty(product_id: number) {
         return quantities[product_id] ?? 1
@@ -74,11 +87,13 @@ export default function ProductsPage() {
 
     if (loading) return <p className="p-8 text-gray-500">Loading products...</p>
     if (error) return <p className="p-8 text-red-500">{error}</p>
-    if (products.length === 0) return <p className="p-8 text-gray-500">No products found.</p>
 
     return (
         <div className="p-8">
             <h1 className="text-3xl font-bold mb-6">Products</h1>
+            {products.length === 0 && (
+                <p className="text-gray-500">{page > 1 ? "No more products." : "No products found."}</p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map((product) => (
                     <div key={product.id} className="border rounded-lg p-4 shadow-sm bg-white flex flex-col">
@@ -97,7 +112,7 @@ export default function ProductsPage() {
                             <span className="text-sm text-gray-400">{product.stock} in stock</span>
                         </div>
 
-                        {cartProductIds.has(product.id) ? (
+                        {isAdmin ? null : cartProductIds.has(product.id) ? (
                             <div className="flex items-center justify-between border rounded-lg px-3 py-2">
                                 <button
                                     onClick={() => handleRemoveFromCart(product.id)}
@@ -122,6 +137,23 @@ export default function ProductsPage() {
                         )}
                     </div>
                 ))}
+            </div>
+            <div className="flex justify-between items-center mt-8">
+                <button
+                    onClick={() => goToPage(page - 1)}
+                    disabled={page === 1}
+                    className="border px-4 py-2 rounded hover:bg-gray-100 disabled:opacity-50"
+                >
+                    Previous
+                </button>
+                <span className="text-sm text-gray-600">Page {page}</span>
+                <button
+                    onClick={() => goToPage(page + 1)}
+                    disabled={products.length < PAGE_SIZE}
+                    className="border px-4 py-2 rounded hover:bg-gray-100 disabled:opacity-50"
+                >
+                    Next
+                </button>
             </div>
         </div>
     )
