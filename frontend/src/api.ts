@@ -67,8 +67,9 @@ export interface Order {
     items?: OrderItem[]
 }
 
-export function getProducts(page = 1, pageSize = 9): Promise<Product[]> {
-    return request<Product[]>(`/products/?page=${page}&page_size=${pageSize}`)
+export function getProducts(page = 1, pageSize = 9, category = ""): Promise<Product[]> {
+    const path = category ? `/products/category/${category}` : "/products/"
+    return request<Product[]>(`${path}?page=${page}&page_size=${pageSize}`)
 }
 
 export function login(email: string, password: string): Promise<{ access_token: string }> {
