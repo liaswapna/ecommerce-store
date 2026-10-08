@@ -1,6 +1,10 @@
+import os
+
+os.environ["TESTING"] = "true"
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
 from app.main import app
@@ -10,6 +14,9 @@ from app.models import user, product, cart  # noqa: F401 — required so Base.me
 
 engine = create_engine(settings.test_database_url)
 TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+with engine.begin() as conn:
+    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
 
 def override_get_db():
