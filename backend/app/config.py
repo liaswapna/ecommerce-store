@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     database_url: str
     secret_key: str
     test_database_url: str = ""
+    gemini_api_key: str = ""
 
     # frontend URLs allowed to call this API, comma-separated.
     # loaded from the CORS_ORIGINS env var — on Render this is set to the Vercel URL.
