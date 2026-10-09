@@ -9,7 +9,9 @@ from sqlalchemy.orm import sessionmaker
 from app.config import settings
 from app.main import app
 from app.database import Base, get_db
+from app.embedder import get_embedder
 from app.models import user, product, cart  # noqa: F401 — required so Base.metadata knows about all tables
+from tests.fakes import FakeEmbedder
 
 
 engine = create_engine(settings.test_database_url)
@@ -37,6 +39,7 @@ def reset_db():
 @pytest.fixture
 def client():
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_embedder] = lambda: FakeEmbedder()
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

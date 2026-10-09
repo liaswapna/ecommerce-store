@@ -1,8 +1,12 @@
+import logging
 from sqlalchemy.orm import Session
 from app.models.product import Product
 from app.schemas.product import CreateProductRequest, UpdateProductRequest
 from app.repositories.product import ProductRepository
 from app.exceptions import NotFoundError, DatabaseError
+from app.embedder import Embedder
+
+logger = logging.getLogger(__name__)
 
 
 class ProductService:
@@ -21,19 +25,24 @@ class ProductService:
             raise NotFoundError("Product not found")
         return product
 
-    def create(self, db: Session, data: CreateProductRequest) -> Product:
+    def create(self, db: Session, data: CreateProductRequest, embedder: Embedder | None = None) -> Product:
         try:
-            return self.repository.create(db, data)
+            product = self.repository.create(db, data)
         except Exception:
             raise DatabaseError("Failed to create product")
+        self._save_embedding(db, product, embedder)
+        return product
 
-    def update(self, db: Session, data: UpdateProductRequest, product_id: int) -> Product:
+    def update(self, db: Session, data: UpdateProductRequest, product_id: int, embedder: Embedder | None = None) -> Product:
         try:
             product = self.repository.update(db, data, product_id)
         except Exception:
             raise DatabaseError("Failed to update product")
         if product is None:
             raise NotFoundError("Product not found")
+        text_changed = any(value is not None for value in (data.name, data.description, data.category))
+        if text_changed or product.embedding is None:
+            self._save_embedding(db, product, embedder)
         return product
 
     def delete(self, db: Session, product_id: int) -> Product:
@@ -44,3 +53,17 @@ class ProductService:
         if product is None:
             raise NotFoundError("Product not found")
         return product
+
+    @staticmethod
+    def product_text(product: Product) -> str:
+        return f"{product.name}. {product.description}. Category: {product.category}"
+
+    def _save_embedding(self, db: Session, product: Product, embedder: Embedder | None) -> None:
+        if embedder is None:
+            return
+        try:
+            embedding = embedder.embed([self.product_text(product)])[0]
+            self.repository.update_embedding(db, product, embedding)
+        except Exception:
+            db.rollback()
+            logger.warning("Could not embed product %s; saved without embedding", product.id)

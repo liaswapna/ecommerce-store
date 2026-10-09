@@ -3,7 +3,9 @@ from decimal import Decimal
 import pytest
 from app.services.product import ProductService
 from app.models.product import Product
+from app.schemas.product import UpdateProductRequest
 from app.exceptions import NotFoundError, DatabaseError
+from tests.fakes import FakeEmbedder
 
 
 service = ProductService()
@@ -109,3 +111,28 @@ class TestDelete:
         service.repository.delete = MagicMock(side_effect=Exception("DB error"))
         with pytest.raises(DatabaseError):
             service.delete(db, 1)
+
+
+class TestEmbeddingOnUpdate:
+
+    def test_price_only_change_does_not_re_embed(self):
+        # only the price changed and the product already has a card -> no new card needed
+        db = MagicMock()
+        product = make_product(embedding=[0.1] * 768)
+        service.repository.update = MagicMock(return_value=product)
+        service.repository.update_embedding = MagicMock()
+        embedder = FakeEmbedder()
+        service.update(db, UpdateProductRequest(price=Decimal("79.99")), 1, embedder)
+        assert embedder.calls == []
+        service.repository.update_embedding.assert_not_called()
+
+    def test_description_change_re_embeds(self):
+        # the description changed -> the meaning changed -> make a new card
+        db = MagicMock()
+        product = make_product(embedding=[0.1] * 768)
+        service.repository.update = MagicMock(return_value=product)
+        service.repository.update_embedding = MagicMock()
+        embedder = FakeEmbedder()
+        service.update(db, UpdateProductRequest(description="Trail running shoes"), 1, embedder)
+        assert len(embedder.calls) == 1
+        service.repository.update_embedding.assert_called_once()

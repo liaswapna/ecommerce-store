@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.embedder import Embedder, get_embedder
 from app.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse
 from app.services.product import ProductService
 from app.dependencies import require_admin
@@ -49,17 +50,19 @@ def admin_get_by_id(product_id: int, db: Session = Depends(get_db), current_user
 
 
 @admin_router.post("/", response_model=ProductResponse)
-def create(data: CreateProductRequest, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+def create(data: CreateProductRequest, db: Session = Depends(get_db), current_user: User = Depends(require_admin),
+           embedder: Embedder | None = Depends(get_embedder)):
     try:
-        return service.create(db, data)
+        return service.create(db, data, embedder)
     except DatabaseError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @admin_router.put("/{product_id}", response_model=ProductResponse)
-def update(product_id: int, data: UpdateProductRequest, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+def update(product_id: int, data: UpdateProductRequest, db: Session = Depends(get_db), current_user: User = Depends(require_admin),
+           embedder: Embedder | None = Depends(get_embedder)):
     try:
-        return service.update(db, data, product_id)
+        return service.update(db, data, product_id, embedder)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except DatabaseError as e:

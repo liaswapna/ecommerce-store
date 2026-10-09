@@ -1,5 +1,9 @@
 from app.models.user import User
+from app.models.product import Product
+from app.embedder import get_embedder
+from app.main import app
 from tests.conftest import TestingSession
+from tests.fakes import FailingEmbedder
 from app.services.auth import AuthService
 
 
@@ -245,3 +249,32 @@ class TestAdminDeleteProduct:
         # no token — should return 401
         response = client.delete("/admin/products/1")
         assert response.status_code == 401
+
+
+def get_saved_embedding(product_id):
+    # read the product's score card straight from the test database
+    db = TestingSession()
+    try:
+        return db.query(Product).filter(Product.id == product_id).first().embedding
+    finally:
+        db.close()
+
+
+class TestProductEmbedding:
+
+    def test_create_saves_embedding(self, client):
+        # creating "Nike Air Max - Running shoes" should save a 768-spot card with the "sporty" spot on
+        token = create_admin_token()
+        product = create_product(client, token)
+        embedding = get_saved_embedding(product["id"])
+        assert embedding is not None
+        assert len(embedding) == 768
+        assert embedding[0] == 1.0
+
+    def test_create_still_saves_when_embedding_fails(self, client):
+        # embedder breaks -> product is still created, just without a card
+        app.dependency_overrides[get_embedder] = lambda: FailingEmbedder()
+        token = create_admin_token()
+        product = create_product(client, token)
+        assert product["name"] == "Nike Air Max"
+        assert get_saved_embedding(product["id"]) is None

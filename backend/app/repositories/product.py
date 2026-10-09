@@ -65,3 +65,9 @@ class ProductRepository:
         db.commit()
         db.refresh(product)
         return product
+
+    def update_embedding(self, db: Session, product: Product, embedding: list[float]) -> Product:
+        product.embedding = embedding
+        db.commit()
+        db.refresh(product)
+        return product
