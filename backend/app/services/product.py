@@ -8,6 +8,8 @@ from app.embedder import Embedder
 
 logger = logging.getLogger(__name__)
 
+SEARCH_LIMIT = 5
+
 
 class ProductService:
     def __init__(self):
@@ -44,6 +46,21 @@ class ProductService:
         if text_changed or product.embedding is None:
             self._save_embedding(db, product, embedder)
         return product
+
+    def search(self, db: Session, query: str, embedder: Embedder | None = None, limit: int = SEARCH_LIMIT) -> list[Product]:
+        query = query.strip()
+        if not query:
+            return []
+        if embedder is not None:
+            try:
+                query_embedding = embedder.embed([query])[0]
+                results = self.repository.search_by_embedding(db, query_embedding, limit)
+                if results:
+                    return results
+            except Exception:
+                db.rollback()
+                logger.warning("Semantic search failed for %r; using keyword search", query)
+        return self.repository.search_by_keyword(db, query, limit)
 
     def delete(self, db: Session, product_id: int) -> Product:
         try:

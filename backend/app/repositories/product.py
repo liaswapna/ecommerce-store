@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.models.product import Product
 from app.schemas.product import CreateProductRequest, UpdateProductRequest
 
@@ -71,3 +72,24 @@ class ProductRepository:
         db.commit()
         db.refresh(product)
         return product
+
+    def search_by_embedding(self, db: Session, query_embedding: list[float], limit: int) -> list[Product]:
+        return (
+            db.query(Product)
+            .filter(Product.is_active == True, Product.embedding.is_not(None))
+            .order_by(Product.embedding.cosine_distance(query_embedding))
+            .limit(limit)
+            .all()
+        )
+
+    def search_by_keyword(self, db: Session, query: str, limit: int) -> list[Product]:
+        pattern = f"%{query}%"
+        return (
+            db.query(Product)
+            .filter(
+                Product.is_active == True,
+                or_(Product.name.ilike(pattern), Product.description.ilike(pattern), Product.category.ilike(pattern)),
+            )
+            .limit(limit)
+            .all()
+        )

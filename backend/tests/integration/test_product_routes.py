@@ -38,12 +38,12 @@ def create_user_token():
         db.close()
 
 
-def create_product(client, token):
+def create_product(client, token, name="Nike Air Max", description="Running shoes", category="shoes"):
     # helper to create a product via the API and return the response data
     response = client.post("/admin/products", json={
-        "name": "Nike Air Max",
-        "description": "Running shoes",
-        "category": "shoes",
+        "name": name,
+        "description": description,
+        "category": category,
         "price": "99.99",
         "stock": 50,
         "is_active": True
@@ -278,3 +278,41 @@ class TestProductEmbedding:
         product = create_product(client, token)
         assert product["name"] == "Nike Air Max"
         assert get_saved_embedding(product["id"]) is None
+
+
+def create_search_catalog(client):
+    # three products for search tests: shoes, a jacket, headphones
+    token = create_admin_token()
+    create_product(client, token, "Nike Air Max", "Running shoes", "shoes")
+    jacket = create_product(client, token, "North Face Jacket", "Waterproof winter jacket", "clothing")
+    create_product(client, token, "Sony Headphones", "Wireless headphones", "electronics")
+    return token, jacket
+
+
+class TestSearchProducts:
+
+    def test_finds_by_meaning(self, client):
+        # no product contains these words, but the meaning matches the jacket
+        create_search_catalog(client)
+        response = client.get("/products/search", params={"q": "something cozy for snow"})
+        assert response.status_code == 200
+        assert response.json()[0]["name"] == "North Face Jacket"
+
+    def test_falls_back_to_keyword_search_when_embedder_fails(self, client):
+        # AI broken -> keyword search still finds exact words
+        app.dependency_overrides[get_embedder] = lambda: FailingEmbedder()
+        create_search_catalog(client)
+        response = client.get("/products/search", params={"q": "jacket"})
+        assert [p["name"] for p in response.json()] == ["North Face Jacket"]
+
+    def test_hides_inactive_products(self, client):
+        # a deleted product never shows up in search
+        token, jacket = create_search_catalog(client)
+        client.delete(f"/admin/products/{jacket['id']}", headers={"Authorization": f"Bearer {token}"})
+        response = client.get("/products/search", params={"q": "something cozy for snow"})
+        assert "North Face Jacket" not in [p["name"] for p in response.json()]
+
+    def test_empty_query_rejected(self, client):
+        # q must have at least 1 character
+        response = client.get("/products/search", params={"q": ""})
+        assert response.status_code == 422

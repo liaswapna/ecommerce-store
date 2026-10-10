@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.embedder import Embedder, get_embedder
@@ -21,6 +21,12 @@ def get_all(page: int = 1, page_size: int = 10, db: Session = Depends(get_db)):
 @router.get("/category/{category}", response_model=list[ProductResponse])
 def get_by_category(category: str, page: int = 1, page_size: int = 10, db: Session = Depends(get_db)):
     return service.get_by_category(db, category, page, page_size, True)
+
+
+@router.get("/search", response_model=list[ProductResponse])
+def search(q: str = Query(min_length=1, max_length=200), db: Session = Depends(get_db),
+           embedder: Embedder | None = Depends(get_embedder)):
+    return service.search(db, q, embedder)
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
