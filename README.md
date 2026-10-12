@@ -1,13 +1,17 @@
 # E-Commerce Store
 
-A full-stack e-commerce platform built with FastAPI and React. Customers can browse products, add items to a cart, and place orders. Admins can manage products and view orders.
+A full-stack e-commerce platform built with FastAPI and React. Customers can browse products, add items to a cart, and place orders. Admins can create, edit and deactivate products. Customers can also search products in plain language ("something cozy for snow") with AI semantic search.
+
+Built by **Swapna Lia Anil** · [github.com/liaswapna](https://github.com/liaswapna)
 
 ---
 
 ## Live Demo
 
-- **Frontend:** coming soon
-- **Backend API:** coming soon
+- **Frontend:** https://fullstack-ecom-store.vercel.app
+- **Backend API docs:** https://ecommerce-store-api-vgxw.onrender.com/docs
+
+> Hosted on free tiers: the backend sleeps after 15 minutes idle, so the first request can take about a minute. After that it's fast.
 
 ---
 
@@ -15,19 +19,20 @@ A full-stack e-commerce platform built with FastAPI and React. Customers can bro
 
 **Backend**
 - Python 3.12, FastAPI
-- PostgreSQL, SQLAlchemy, Alembic
+- PostgreSQL + pgvector, SQLAlchemy, Alembic
+- Gemini embeddings (`gemini-embedding-001`) for AI semantic search
 - JWT authentication, bcrypt password hashing
 - pytest (unit + integration tests)
 
 **Frontend**
-- React 18, TypeScript, Tailwind CSS
+- React 19, TypeScript, Tailwind CSS
 - Vite (dev), nginx (production)
 
 **Infrastructure**
 - Docker + Docker Compose (local)
-- Neon (PostgreSQL, production) (TODO)
-- Render (backend, production) (TODO)
-- Vercel (frontend, production) (TODO)
+- Neon (PostgreSQL + pgvector, production)
+- Render (backend in Docker, production)
+- Vercel (frontend, production)
 - GitHub Actions (CI/CD)
 
 ---
@@ -56,6 +61,23 @@ Request → Route → Service → Repository → Database
 - Soft delete on products (preserves order history integrity)
 - Prices stored as `NUMERIC(10,2)` — no floating point errors on money
 - Price and name snapshotted on `OrderItem` — historical accuracy even if product changes
+- Order detail only returns the caller's own orders (404 otherwise), so users can't read each other's orders by changing the ID
+- Admin dashboard: product list (including inactive), create/edit form with validation; lazy-loaded, protected in the UI (`AdminRoute`) and on the API (`require_admin`)
+- AI semantic search with keyword fallback (see below)
+
+---
+
+## AI Semantic Search
+
+Customers search by meaning, not exact words. "video calls from home" finds the webcam.
+
+1. When an admin creates or edits a product, its name, description and category are turned into a 768-number embedding (Gemini `gemini-embedding-001`) and stored in a pgvector column. Edits only re-embed when the text changes.
+2. A search embeds the query the same way and returns the 5 closest active products (cosine distance in Postgres; no separate vector database).
+3. If there's no API key, Gemini fails, or nothing matches, it falls back to keyword search, so search always works. If embedding fails on save, the product still saves.
+
+**Result:** on 15 hand-written test queries, the right product appeared in the first 3 results for **15/15** queries with semantic search vs **2/15** with keyword search (the app shows 5 results; the test checks the top 3, which is stricter). Run it yourself with `python -m scripts.evaluate_search`.
+
+Tests never call Gemini: they use a fake embedder, so CI needs no API key.
 
 ---
 
@@ -69,6 +91,7 @@ ecommerce-store/
 │   │   ├── config.py            # Settings via pydantic-settings, reads .env
 │   │   ├── database.py          # SQLAlchemy engine + session
 │   │   ├── dependencies.py      # get_current_user, require_admin
+│   │   ├── embedder.py          # Gemini embedder (AI search)
 │   │   ├── exceptions.py        # NotFoundError, DatabaseError, OutOfStockError
 │   │   ├── models/              # SQLAlchemy table definitions
 │   │   ├── schemas/             # Pydantic request/response shapes
@@ -82,12 +105,14 @@ ecommerce-store/
 │   │   └── integration/         # Full request → DB tests
 │   ├── scripts/
 │   │   ├── seed.py              # Sample product data
-│   │   └── backfill_embeddings.py  # Fill in missing product embeddings
+│   │   ├── backfill_embeddings.py  # Fill in missing product embeddings
+│   │   └── evaluate_search.py   # Keyword vs semantic hit rate
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
 │   └── src/
-│       ├── pages/               # ProductsPage, CartPage, OrdersPage, OrderDetailPage, LoginPage
+│       ├── pages/               # Products, Cart, Orders, OrderDetail, Login, AdminProducts, AdminProductForm
+│       ├── components/          # Navbar, AdminRoute
 │       ├── context/             # AuthContext (JWT token state)
 │       └── api.ts               # All API calls in one place
 ├── .github/
@@ -106,7 +131,7 @@ ecommerce-store/
 
 - Python 3.12
 - Node.js 20
-- PostgreSQL 16+
+- PostgreSQL 16+ with the [pgvector](https://github.com/pgvector/pgvector) extension (macOS: `brew install pgvector`)
 
 ### Backend setup
 
@@ -123,6 +148,7 @@ pip install -r requirements.txt
 # Set up environment variables
 cp .env.example .env
 # Edit .env with your local database URLs and a secret key
+# GEMINI_API_KEY is optional — without it, search uses keyword matching
 
 # Create the databases
 psql -c "CREATE DATABASE ecommerce_store;"
@@ -155,6 +181,10 @@ Frontend runs at `http://localhost:5173`
 cd backend
 source venv/bin/activate
 python -m scripts.seed
+
+# Optional, needs GEMINI_API_KEY: embed existing products, then compare search quality
+python -m scripts.backfill_embeddings
+python -m scripts.evaluate_search
 ```
 
 ---
@@ -199,7 +229,7 @@ source venv/bin/activate
 pytest
 ```
 
-Tests run against a separate `ecommerce_store_test` database that is created fresh and wiped after every test. The main database is never touched.
+116 tests (unit + integration). Tests run against a separate `ecommerce_store_test` database that is created fresh and wiped after every test. The main database is never touched.
 
 ```bash
 # Run with coverage report
@@ -218,9 +248,9 @@ pytest tests/integration/
 
 GitHub Actions runs on every push and pull request to `main`:
 
-1. **Test job** — spins up a Postgres container, installs dependencies, runs the full test suite
-2. **deploy-backend** — triggers a Render redeploy (only if tests pass, only on push to main) (TODO)
-3. **deploy-frontend** — deploys to Vercel (only if tests pass, only on push to main) (TODO)
+1. **Test job** — spins up a Postgres container (with pgvector), installs dependencies, runs the full test suite
+2. **deploy-backend** — triggers a Render redeploy (only if tests pass, only on push to main)
+3. **deploy-frontend** — deploys to Vercel (only if tests pass, only on push to main)
 
 Pull requests run tests but never deploy. Branch protection on `main` blocks merging until the `test` job passes.
 
@@ -240,13 +270,17 @@ All secrets (database URLs, API keys) are stored in GitHub Secrets — never in 
 ### Products
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/products` | List all active products |
+| GET | `/products?page=&page_size=` | List active products (paginated) |
+| GET | `/products/category/{category}` | Filter by category (paginated) |
+| GET | `/products/search?q=` | AI semantic search, keyword fallback (top 5) |
 | GET | `/products/{id}` | Get product by ID |
-| GET | `/products/category/{category}` | Filter by category |
 
 ### Admin Products
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/admin/products` | List all products, including inactive (paginated) |
+| GET | `/admin/products/category/{category}` | Filter by category, including inactive |
+| GET | `/admin/products/{id}` | Get any product by ID |
 | POST | `/admin/products` | Create product |
 | PUT | `/admin/products/{id}` | Update product |
 | DELETE | `/admin/products/{id}` | Soft delete product |
@@ -258,14 +292,14 @@ All secrets (database URLs, API keys) are stored in GitHub Secrets — never in 
 | POST | `/cart` | Add item to cart |
 | PATCH | `/cart` | Update item quantity |
 | DELETE | `/cart/{product_id}` | Remove item |
-| DELETE | `/cart` | Clear cart |
+| DELETE | `/cart/clear` | Clear cart |
 
 ### Orders
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/orders` | Place an order |
 | GET | `/orders` | Order history |
-| GET | `/orders/{id}` | Order detail |
+| GET | `/orders/{id}` | Order detail (own orders only) |
 
 ---
 
@@ -278,6 +312,8 @@ All secrets (database URLs, API keys) are stored in GitHub Secrets — never in 
 | `DATABASE_URL` | PostgreSQL connection string |
 | `TEST_DATABASE_URL` | Test database connection string |
 | `SECRET_KEY` | JWT signing secret — use a strong random value in production |
+| `GEMINI_API_KEY` | Optional. Enables AI semantic search; without it, search uses keyword matching |
+| `CORS_ORIGINS` | Comma-separated allowed frontend origins (defaults to localhost; set to the Vercel URL in production) |
 
 Generate a strong secret key:
 ```bash
