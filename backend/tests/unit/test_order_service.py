@@ -157,7 +157,7 @@ class TestGetOrderById:
         db = MagicMock()
         service.order_repository.get_order_by_id = MagicMock(return_value=None)
         with pytest.raises(NotFoundError):
-            service.get_order_by_id(db, 999)
+            service.get_order_by_id(db, 999, 1)
 
     def test_returns_order_detail_with_items(self):
         # order exists with items — should return OrderDetailResponse with items list
@@ -165,7 +165,15 @@ class TestGetOrderById:
         order_item = make_order_item()
         order = make_order(items=[order_item])
         service.order_repository.get_order_by_id = MagicMock(return_value=order)
-        result = service.get_order_by_id(db, 1)
+        result = service.get_order_by_id(db, 1, 1)
         assert isinstance(result, OrderDetailResponse)
         assert len(result.items) == 1
         assert result.items[0].name_at_purchase == "Nike Air Max"
+
+    def test_passes_user_id_to_repository(self):
+        # the service must pass the user id down so the repository can check ownership
+        db = MagicMock()
+        order = make_order(items=[make_order_item()])
+        service.order_repository.get_order_by_id = MagicMock(return_value=order)
+        service.get_order_by_id(db, 5, 7)
+        service.order_repository.get_order_by_id.assert_called_once_with(db, 5, 7)

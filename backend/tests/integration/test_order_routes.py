@@ -8,10 +8,10 @@ from app.models.product import Product as ProductModel
 auth_service = AuthService()
 
 
-def create_user_token():
+def create_user_token(email="user@example.com"):
     db = TestingSession()
     try:
-        user = User(name="User", email="user@example.com",
+        user = User(name="User", email=email,
                     hashed_password=auth_service.hash_password("user123"), is_admin=False)
         db.add(user)
         db.commit()
@@ -180,6 +180,25 @@ class TestGetOrderById:
         assert data["id"] == order["id"]
         assert len(data["items"]) == 1
         assert data["items"][0]["name_at_purchase"] == "Nike Air Max"
+
+    def test_other_users_order_returns_404(self, client):
+        # IDOR check: user B must not see user A's order — 404, not 403, so B can't tell it exists
+        admin_token = create_admin_token()
+        user_a_token = create_user_token("a@example.com")
+        user_b_token = create_user_token("b@example.com")
+        product = create_product(client, admin_token, stock=10)
+        add_to_cart(client, user_a_token, product["id"], quantity=1)
+        order = client.post(
+            "/orders/", headers={"Authorization": f"Bearer {user_a_token}"}).json()
+
+        response = client.get(
+            f"/orders/{order['id']}", headers={"Authorization": f"Bearer {user_b_token}"})
+        assert response.status_code == 404
+
+        # the owner can still see it
+        response = client.get(
+            f"/orders/{order['id']}", headers={"Authorization": f"Bearer {user_a_token}"})
+        assert response.status_code == 200
 
     def test_order_not_found_returns_404(self, client):
         # order 999 doesn't exist — should return 404

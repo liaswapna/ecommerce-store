@@ -84,8 +84,8 @@ class OrderService:
         orders = self.order_repository.get_orders(db, user_id)
         return [OrderSummaryResponse(id=order.id, total_price=order.total_price, status=order.status, created_at=order.created_at) for order in orders]
 
-    def get_order_by_id(self, db: Session, order_id: int) -> OrderDetailResponse:
-        order = self.order_repository.get_order_by_id(db, order_id)
+    def get_order_by_id(self, db: Session, order_id: int, user_id: int) -> OrderDetailResponse:
+        order = self.order_repository.get_order_by_id(db, order_id, user_id)
         if order is None:
             raise NotFoundError("Order not found")
         return OrderDetailResponse(

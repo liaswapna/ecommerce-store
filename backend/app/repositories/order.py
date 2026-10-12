@@ -19,8 +19,8 @@ class OrderRepository:
     def get_orders(self, db: Session, user_id: int) -> list[Order]:
         return db.query(Order).filter(Order.user_id == user_id).all()
 
-    def get_order_by_id(self, db: Session, order_id: int) -> Order | None:
-        return db.query(Order).filter(Order.id == order_id).first()
+    def get_order_by_id(self, db: Session, order_id: int, user_id: int) -> Order | None:
+        return db.query(Order).filter(Order.id == order_id, Order.user_id == user_id).first()
 
     def update_order(self, db: Session, order_id: int, payment_intent_id: str | None = None, status: OrderStatus | None = None) -> Order | None:
         order = db.query(Order).filter(Order.id == order_id).first()
