@@ -31,6 +31,6 @@ def get_orders(db: Session = Depends(get_db), current_user: User = Depends(get_c
 @router.get("/{order_id}", response_model=OrderDetailResponse)
 def get_order_by_id(order_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
-        return service.get_order_by_id(db, order_id)
+        return service.get_order_by_id(db, order_id, current_user.id)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
