@@ -1,5 +1,9 @@
 from app.models.user import User
+from app.models.product import Product
+from app.embedder import get_embedder
+from app.main import app
 from tests.conftest import TestingSession
+from tests.fakes import FailingEmbedder
 from app.services.auth import AuthService
 
 
@@ -34,12 +38,12 @@ def create_user_token():
         db.close()
 
 
-def create_product(client, token):
+def create_product(client, token, name="Nike Air Max", description="Running shoes", category="shoes"):
     # helper to create a product via the API and return the response data
     response = client.post("/admin/products", json={
-        "name": "Nike Air Max",
-        "description": "Running shoes",
-        "category": "shoes",
+        "name": name,
+        "description": description,
+        "category": category,
         "price": "99.99",
         "stock": 50,
         "is_active": True
@@ -245,3 +249,70 @@ class TestAdminDeleteProduct:
         # no token — should return 401
         response = client.delete("/admin/products/1")
         assert response.status_code == 401
+
+
+def get_saved_embedding(product_id):
+    # read the product's score card straight from the test database
+    db = TestingSession()
+    try:
+        return db.query(Product).filter(Product.id == product_id).first().embedding
+    finally:
+        db.close()
+
+
+class TestProductEmbedding:
+
+    def test_create_saves_embedding(self, client):
+        # creating "Nike Air Max - Running shoes" should save a 768-spot card with the "sporty" spot on
+        token = create_admin_token()
+        product = create_product(client, token)
+        embedding = get_saved_embedding(product["id"])
+        assert embedding is not None
+        assert len(embedding) == 768
+        assert embedding[0] == 1.0
+
+    def test_create_still_saves_when_embedding_fails(self, client):
+        # embedder breaks -> product is still created, just without a card
+        app.dependency_overrides[get_embedder] = lambda: FailingEmbedder()
+        token = create_admin_token()
+        product = create_product(client, token)
+        assert product["name"] == "Nike Air Max"
+        assert get_saved_embedding(product["id"]) is None
+
+
+def create_search_catalog(client):
+    # three products for search tests: shoes, a jacket, headphones
+    token = create_admin_token()
+    create_product(client, token, "Nike Air Max", "Running shoes", "shoes")
+    jacket = create_product(client, token, "North Face Jacket", "Waterproof winter jacket", "clothing")
+    create_product(client, token, "Sony Headphones", "Wireless headphones", "electronics")
+    return token, jacket
+
+
+class TestSearchProducts:
+
+    def test_finds_by_meaning(self, client):
+        # no product contains these words, but the meaning matches the jacket
+        create_search_catalog(client)
+        response = client.get("/products/search", params={"q": "something cozy for snow"})
+        assert response.status_code == 200
+        assert response.json()[0]["name"] == "North Face Jacket"
+
+    def test_falls_back_to_keyword_search_when_embedder_fails(self, client):
+        # AI broken -> keyword search still finds exact words
+        app.dependency_overrides[get_embedder] = lambda: FailingEmbedder()
+        create_search_catalog(client)
+        response = client.get("/products/search", params={"q": "jacket"})
+        assert [p["name"] for p in response.json()] == ["North Face Jacket"]
+
+    def test_hides_inactive_products(self, client):
+        # a deleted product never shows up in search
+        token, jacket = create_search_catalog(client)
+        client.delete(f"/admin/products/{jacket['id']}", headers={"Authorization": f"Bearer {token}"})
+        response = client.get("/products/search", params={"q": "something cozy for snow"})
+        assert "North Face Jacket" not in [p["name"] for p in response.json()]
+
+    def test_empty_query_rejected(self, client):
+        # q must have at least 1 character
+        response = client.get("/products/search", params={"q": ""})
+        assert response.status_code == 422

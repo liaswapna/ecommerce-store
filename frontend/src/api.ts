@@ -72,6 +72,10 @@ export function getProducts(page = 1, pageSize = 9, category = ""): Promise<Prod
     return request<Product[]>(`${path}?page=${page}&page_size=${pageSize}`)
 }
 
+export function searchProducts(query: string): Promise<Product[]> {
+    return request<Product[]>(`/products/search?q=${encodeURIComponent(query)}`)
+}
+
 export function login(email: string, password: string): Promise<{ access_token: string }> {
     return request("/auth/login", {
         method: "POST",

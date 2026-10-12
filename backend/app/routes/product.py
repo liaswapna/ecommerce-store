@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.embedder import Embedder, get_embedder
 from app.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse
 from app.services.product import ProductService
 from app.dependencies import require_admin
@@ -20,6 +21,12 @@ def get_all(page: int = 1, page_size: int = 10, db: Session = Depends(get_db)):
 @router.get("/category/{category}", response_model=list[ProductResponse])
 def get_by_category(category: str, page: int = 1, page_size: int = 10, db: Session = Depends(get_db)):
     return service.get_by_category(db, category, page, page_size, True)
+
+
+@router.get("/search", response_model=list[ProductResponse])
+def search(q: str = Query(min_length=1, max_length=200), db: Session = Depends(get_db),
+           embedder: Embedder | None = Depends(get_embedder)):
+    return service.search(db, q, embedder)
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
@@ -49,17 +56,19 @@ def admin_get_by_id(product_id: int, db: Session = Depends(get_db), current_user
 
 
 @admin_router.post("/", response_model=ProductResponse)
-def create(data: CreateProductRequest, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+def create(data: CreateProductRequest, db: Session = Depends(get_db), current_user: User = Depends(require_admin),
+           embedder: Embedder | None = Depends(get_embedder)):
     try:
-        return service.create(db, data)
+        return service.create(db, data, embedder)
     except DatabaseError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @admin_router.put("/{product_id}", response_model=ProductResponse)
-def update(product_id: int, data: UpdateProductRequest, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+def update(product_id: int, data: UpdateProductRequest, db: Session = Depends(get_db), current_user: User = Depends(require_admin),
+           embedder: Embedder | None = Depends(get_embedder)):
     try:
-        return service.update(db, data, product_id)
+        return service.update(db, data, product_id, embedder)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except DatabaseError as e:

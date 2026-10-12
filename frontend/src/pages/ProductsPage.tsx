@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { getProducts, addToCart, getCart, removeFromCart, updateCartQuantity } from "../api"
+import { getProducts, searchProducts, addToCart, getCart, removeFromCart, updateCartQuantity } from "../api"
 import type { Product } from "../api"
 import { useAuth } from "../context/AuthContext"
 import { CATEGORIES } from "../constants"
@@ -47,16 +47,19 @@ export default function ProductsPage() {
     const [cartQuantities, setCartQuantities] = useState<Record<number, number>>({})
     const [page, setPage] = useState(1)
     const [category, setCategory] = useState("")
+    const [searchInput, setSearchInput] = useState("")
+    const [search, setSearch] = useState("")
 
     useEffect(() => {
-        getProducts(page, PAGE_SIZE, category)
+        const load = search ? searchProducts(search) : getProducts(page, PAGE_SIZE, category)
+        load
             .then((data) => {
                 setProducts(data)
                 setError(null)
             })
             .catch((e) => setError(e.message))
             .finally(() => setLoading(false))
-    }, [page, category])
+    }, [page, category, search])
 
     useEffect(() => {
         if (!token || !user || user.is_admin) return
@@ -74,9 +77,26 @@ export default function ProductsPage() {
     }
 
     function selectCategory(newCategory: string) {
-        if (newCategory === category) return
+        if (newCategory === category && !search) return
         setLoading(true)
+        setSearch("")
+        setSearchInput("")
         setCategory(newCategory)
+        setPage(1)
+    }
+
+    function handleSearch(e: FormEvent) {
+        e.preventDefault()
+        const q = searchInput.trim()
+        if (!q || q === search) return
+        setLoading(true)
+        setSearch(q)
+    }
+
+    function clearSearch() {
+        setLoading(true)
+        setSearchInput("")
+        setSearch("")
         setPage(1)
     }
 
@@ -125,13 +145,29 @@ export default function ProductsPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
             <h1 className="text-3xl font-extrabold tracking-tight text-brand-dark">Products</h1>
             <p className="text-gray-500 mt-1 mb-6">Browse our collection</p>
+            <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+                <input
+                    type="search"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder='Try "gear for a morning run"'
+                    maxLength={200}
+                    className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-accent"
+                />
+                <button
+                    type="submit"
+                    className="bg-brand text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-brand-dark transition-colors"
+                >
+                    Search
+                </button>
+            </form>
             <div className="flex flex-wrap gap-2 mb-8">
                 {["", ...CATEGORIES].map((c) => (
                     <button
                         key={c || "all"}
                         onClick={() => selectCategory(c)}
                         className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize border transition-colors ${
-                            category === c
+                            category === c && !search
                                 ? "bg-brand text-white border-brand"
                                 : "bg-white text-brand border-slate-300 hover:border-accent hover:bg-accent-soft"
                         }`}
@@ -140,6 +176,14 @@ export default function ProductsPage() {
                     </button>
                 ))}
             </div>
+            {search && (
+                <div className="flex items-center gap-3 mb-6">
+                    <p className="text-gray-700">Results for <span className="font-semibold">"{search}"</span></p>
+                    <button onClick={clearSearch} className="text-sm text-brand font-semibold hover:underline">
+                        ✕ Clear search
+                    </button>
+                </div>
+            )}
             {loading ? (
                 <p className="text-gray-500">Loading products...</p>
             ) : error ? (
@@ -147,7 +191,7 @@ export default function ProductsPage() {
             ) : (
                 <>
                     {products.length === 0 && (
-                        <p className="text-gray-500">{page > 1 ? "No more products." : "No products found."}</p>
+                        <p className="text-gray-500">{search ? "No products match your search." : page > 1 ? "No more products." : "No products found."}</p>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {products.map((product) => (
@@ -204,6 +248,7 @@ export default function ProductsPage() {
                     </div>
                 </>
             )}
+            {!search && (
             <div className="flex justify-center items-center gap-4 mt-10">
                 <button
                     onClick={() => goToPage(page - 1)}
@@ -221,6 +266,7 @@ export default function ProductsPage() {
                     Next →
                 </button>
             </div>
+            )}
         </div>
     )
 }

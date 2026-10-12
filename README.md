@@ -80,7 +80,9 @@ ecommerce-store/
 │   │   ├── conftest.py          # Test client, test DB setup
 │   │   ├── unit/                # Isolated tests with mocked repositories
 │   │   └── integration/         # Full request → DB tests
-│   ├── seed.py                  # Sample product data
+│   ├── scripts/
+│   │   ├── seed.py              # Sample product data
+│   │   └── backfill_embeddings.py  # Fill in missing product embeddings
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
@@ -152,7 +154,7 @@ Frontend runs at `http://localhost:5173`
 ```bash
 cd backend
 source venv/bin/activate
-python seed.py
+python -m scripts.seed
 ```
 
 ---
@@ -166,7 +168,7 @@ Runs the full stack (backend + frontend + database) in containers.
 docker compose up --build
 
 # Seed the database
-docker compose exec backend python seed.py
+docker compose exec backend python -m scripts.seed
 ```
 
 - Frontend: `http://localhost`

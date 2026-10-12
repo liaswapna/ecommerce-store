@@ -1,5 +1,6 @@
 from sqlalchemy import String, Boolean, DateTime, Numeric, Integer
 from sqlalchemy.orm import Mapped, mapped_column
+from pgvector.sqlalchemy import Vector
 from datetime import datetime, timezone
 from decimal import Decimal
 from app.database import Base
@@ -22,3 +23,4 @@ class Product(Base):
     # onupdate ensures updated_at is refreshed automatically on every change
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(768), nullable=True)
